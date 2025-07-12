@@ -51,7 +51,7 @@ def profile_summary_prompt(text):
 
 # Streamlit UI
 st.set_page_config(page_title="Application Tracking System Insights")
-st.title("Application Tracking System Insight")
+st.title("📄 Application Tracking System Insight")
 st.markdown("Analyze and Improve your Resume to Match Job Descriptions using AI.")
 
 jd = st.text_area("📌 Job Description")
