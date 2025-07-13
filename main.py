@@ -6,13 +6,22 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+api_key = os.getenv("GOOGLE_API_KEY")
+
+if not api_key:
+    st.error("🚫 GOOGLE_API_KEY not set. Please set it in app.yaml or GCP secrets.")
+    st.stop()
+
+genai.configure(api_key=api_key)
 
 # Gemini model function
 def get_gemini_response(prompt):
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
-    return response.text
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"❌ Gemini API Error: {str(e)}"
 
 # Extract PDF Text
 def extract_pdf_text(uploaded_file):
@@ -22,13 +31,11 @@ def extract_pdf_text(uploaded_file):
         text += page.extract_text()
     return text
 
-# Define Prompts
+# Prompts
 def generate_prompt(text, jd):
     return f"""
-    Act like a professional ATS (Application Tracking System) with expertise in software engineering, data science, data engineering and analytics, Machine Learning Engineer.
-    Analyze the resume below against the provided job description.
-    Be specific and provide detailed insights:
-    
+    Act like a professional ATS system. Analyze the resume below against the provided job description.
+
     Resume: {text}
     Job Description: {jd}
 
@@ -41,49 +48,48 @@ def generate_prompt(text, jd):
     """
 
 def improvise_prompt(text):
-    return f"Based on this resume: {text}, how can the candidate improve their technical and soft skills to align with top industry standards?"
+    return f"Based on this resume: {text}, how can the candidate improve their technical and soft skills?"
 
 def missing_keywords_prompt(text, jd):
-    return f"From this resume: {text} and job description: {jd}, list all missing keywords that are important for a better ATS score."
+    return f"From this resume: {text} and job description: {jd}, list all missing keywords."
 
 def profile_summary_prompt(text):
-    return f"Read this resume: {text} and generate a crisp 4-5 line professional summary that highlights the candidate's strengths."
+    return f"Summarize this resume into 4-5 lines highlighting the candidate's strengths: {text}"
 
-# Streamlit UI
-st.set_page_config(page_title="Application Tracking System Insights")
+# Streamlit App UI
+st.set_page_config(page_title="Application Tracking System")
 st.title("📄 Application Tracking System Insight")
-st.markdown("Analyze and Improve your Resume to Match Job Descriptions using AI.")
+st.markdown("Analyze and Improve your Resume to Match Job Descriptions using Gemini AI.")
 
-jd = st.text_area("📌 Job Description")
+jd = st.text_area("📌 Paste the Job Description here")
 uploaded_file = st.file_uploader("📎 Upload your Resume (PDF Only)", type=["pdf"])
+
+if not jd or not uploaded_file:
+    st.info("ℹ️ Please provide both Job Description and Resume to proceed.")
 
 if uploaded_file and jd:
     resume_text = extract_pdf_text(uploaded_file)
 
     col1, col2 = st.columns(2)
-    
+
     with col1:
         if st.button("Tell Me About the Resume"):
-            summary_prompt = profile_summary_prompt(resume_text)
-            response = get_gemini_response(summary_prompt)
+            response = get_gemini_response(profile_summary_prompt(resume_text))
             st.subheader("🧾 Profile Summary")
             st.write(response)
 
         if st.button("How Can I Improvise my Skills"):
-            improve_prompt = improvise_prompt(resume_text)
-            response = get_gemini_response(improve_prompt)
+            response = get_gemini_response(improvise_prompt(resume_text))
             st.subheader("🔧 Skill Improvement Suggestions")
             st.write(response)
 
     with col2:
         if st.button("What are the Keywords That are Missing"):
-            missing_prompt = missing_keywords_prompt(resume_text, jd)
-            response = get_gemini_response(missing_prompt)
+            response = get_gemini_response(missing_keywords_prompt(resume_text, jd))
             st.subheader("❌ Missing Keywords")
             st.write(response)
 
         if st.button("Percentage match"):
-            final_prompt = generate_prompt(resume_text, jd)
-            response = get_gemini_response(final_prompt)
+            response = get_gemini_response(generate_prompt(resume_text, jd))
             st.subheader("✅ ATS Match Result")
             st.write(response)
