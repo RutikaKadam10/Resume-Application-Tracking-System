@@ -1,3 +1,5 @@
+app.yaml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -206,4 +208,3 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-app.yaml
